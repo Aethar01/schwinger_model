@@ -135,7 +135,7 @@ def plot_results(thetas, results, **kwargs):
     plt.ylabel(r"$\langle\bar{\psi}\psi\rangle$")
     plt.legend()
     plt.tight_layout()
-    plt.savefig("results.png", dpi=200)
+    plt.savefig("images/results.png", dpi=200)
     plt.show()
 
 
