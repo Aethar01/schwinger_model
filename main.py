@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from scipy.special import ellipk
 from tqdm import tqdm
 from sys import argv
+import argparse
 
 
 def zz_gate(circ, i, j, coeff):
@@ -139,17 +140,34 @@ def plot_results(thetas, results, **kwargs):
     plt.show()
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-N", "--Nqubits", type=int)
+    parser.add_argument("-a", "--a?", type=float)
+    parser.add_argument("-T", "--time", type=float)
+    parser.add_argument("-dt", "--timestep", type=float)
+    parser.add_argument("-m0", "--m0?", type=float)
+    parser.add_argument("-g", "--gluon?", type=float)
+    parser.add_argument("-m", "--mass", type=float)
+    return parser.parse_args()
+
+
 def main():
-    a = 1.0
+    args = parse_args()
+    if args.m0 is not None:
+        if args.m0 < 0:
+            raise ValueError("m0 must be non-negative")
+
+    a = args.a or 1.0
     params = {
-        "N": 16,
+        "N": args.N or 16,
         "a": a,
         "w": 1.0 / (2 * a),
-        "T": 150,
-        "dt": 0.3,
-        "m0": 1.0,
-        "g": 1.0,
-        "m": 0.1
+        "T": args.T or 150,
+        "dt": args.dt or 0.3,
+        "m0": args.m0 or 1.0,
+        "g": args.g or 1.0,
+        "m": args.m or 0.1
     }
 
     thetas, results = run_sims(**params)
