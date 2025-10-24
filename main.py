@@ -241,17 +241,19 @@ def plot_results(thetas, results_by_N, Ns, results_inf, **kwargs):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            )
     # parser.add_argument("-N", "--Nqubits", type=int)
-    parser.add_argument("-a", "--a", type=float)
-    parser.add_argument("-T", "--time", type=float)
-    parser.add_argument("-dt", "--timestep", type=float)
-    parser.add_argument("-m0", "--m0", type=float)
-    parser.add_argument("-g", "--coupling_constant", type=float)
-    parser.add_argument("-m", "--mass", type=float)
-    parser.add_argument("-s", "--shots", type=int)
-    parser.add_argument("-i", "--inf", action="store_true")
-    parser.add_argument("-N", "--Nqubits", type=int)
+    parser.add_argument("-a", "--a", type=float, default=1.0, help="IDK")
+    parser.add_argument("-T", "--time", type=float, default=15, help="Total time")
+    parser.add_argument("-dt", "--timestep", type=float, default=0.3, help="Time of each trotter step")
+    parser.add_argument("-m0", "--m0", type=float, default=1.0, help="IDK")
+    parser.add_argument("-g", "--coupling_constant", type=float, default=1.0, help="Coupling constant")
+    parser.add_argument("-m", "--mass", type=float, default=0.1, help="Mass")
+    parser.add_argument("-s", "--shots", type=int, default=2048, help="Number of shots")
+    parser.add_argument("-i", "--inf", action="store_true", help="Extrapolate number of Qubits to infinity")
+    parser.add_argument("-N", "--Nqubits", type=int, default=16, help="Number of Qubits")
     parser.add_argument("-d", "--draw", action="store_true", help="Draw the circuit and exit")
     return parser.parse_args()
 
