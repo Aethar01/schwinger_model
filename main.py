@@ -6,6 +6,7 @@ from qiskit_aer import AerSimulator
 from matplotlib import pyplot as plt
 from scipy.special import ellipk
 from tqdm import tqdm
+from sys import argv
 import argparse
 
 
@@ -80,7 +81,7 @@ def trotter_step(circ, t, theta, *, N, T, dt, w, m0, m, J):
             ((-1) ** n) - J / 2 * sum([k % 2 for k in range(n, N-1)])
         return cn
 
-    def HZ(circ):
+    def H_Z(circ):
         circ.copy()
         for n in range(N):
             cn = c_n(t, T, m0, m, theta, n, J)
@@ -89,13 +90,19 @@ def trotter_step(circ, t, theta, *, N, T, dt, w, m0, m, J):
 
     def H_plus_minus_half(circ):
         circ.copy()
-        for n in range(N-1):
+        for n in range(0, N-1, 2):
+            wbar = w_bar(t, T, w, n, m0, m, theta)
+            circ = yy_gate(circ, n + 1, n, wbar * 0.5 * dt / 2)
+        for n in range(1, N-1, 2):
             wbar = w_bar(t, T, w, n, m0, m, theta)
             circ = yy_gate(circ, n + 1, n, wbar * 0.5 * dt / 2)
 
         circ.barrier()
 
-        for n in range(N-1):
+        for n in range(0, N-1, 2):
+            wbar = w_bar(t, T, w, n, m0, m, theta)
+            circ = xx_gate(circ, n + 1, n, wbar * 0.5 * dt / 2)
+        for n in range(1, N-1, 2):
             wbar = w_bar(t, T, w, n, m0, m, theta)
             circ = xx_gate(circ, n + 1, n, wbar * 0.5 * dt / 2)
         return circ
@@ -115,7 +122,7 @@ def trotter_step(circ, t, theta, *, N, T, dt, w, m0, m, J):
     circ.barrier()
     circ.barrier()
 
-    circ = HZ(circ)
+    circ = H_Z(circ)
     circ.barrier()
     circ.barrier()
 
@@ -145,7 +152,7 @@ def chiral_condensate(expectations, a):
     return np.sum(vals) / (2 * N * a)
 
 
-def run_sim(g, m, theta, *, N, T, dt, m0, a, w, shots):
+def run_sim(g, m, theta, *, N, T, dt, m0, a, w, shots, draw: bool):
     """Run one simulation for given parameters and return the VEV - VEV_free."""
     J = g**2 * a / 2
 
@@ -161,9 +168,10 @@ def run_sim(g, m, theta, *, N, T, dt, m0, a, w, shots):
 
     qc.measure_all()
 
-    # print(qc.draw(output="mpl"))
-    # plt.show()
-    # exit()
+    if draw:
+        print(qc.draw(output="mpl"))
+        plt.show()
+        exit()
 
     sim = AerSimulator()
     compiled = transpile(qc, sim)
@@ -183,13 +191,13 @@ def run_sim(g, m, theta, *, N, T, dt, m0, a, w, shots):
     return psi_bar_psi_minus_free
 
 
-def run_sims(g, m, *, N, T, dt, m0, a, w, shots):
+def run_sims(g, m, *, N, T, dt, m0, a, w, shots, draw: bool):
     """Run multiple simulations across a theta range."""
     thetas = [i * 0.05 * 2 * np.pi for i in range(0, 11)]
     results = []
     for theta in tqdm(thetas):
         res = run_sim(g, m, theta, N=N, T=T, dt=dt,
-                      m0=m0, a=a, w=w, shots=shots)
+                      m0=m0, a=a, w=w, shots=shots, draw=draw)
         results.append(res)
     return np.array(thetas), np.array(results)
 
@@ -244,6 +252,7 @@ def parse_args():
     parser.add_argument("-s", "--shots", type=int)
     parser.add_argument("-i", "--inf", action="store_true")
     parser.add_argument("-N", "--Nqubits", type=int)
+    parser.add_argument("-d", "--draw", action="store_true", help="Draw the circuit and exit")
     return parser.parse_args()
 
 
@@ -262,7 +271,8 @@ def main():
         "m0": args.m0 or 1.0,
         "g": args.coupling_constant or 1.0,
         "m": args.mass or 0.0,
-        "shots": args.shots or 2048
+        "shots": args.shots or 2048,
+        "draw": args.draw or False
     }
 
     if args.Nqubits and args.inf:
