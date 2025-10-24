@@ -6,7 +6,6 @@ from qiskit_aer import AerSimulator
 from matplotlib import pyplot as plt
 from scipy.special import ellipk
 from tqdm import tqdm
-from sys import argv
 import argparse
 
 
@@ -52,7 +51,7 @@ def yy_gate(circ, i, j, coeff):
     return circ
 
 
-def xy_gate(circ, i, j, coeff):
+def xxyy_gate(circ, i, j, coeff):
     """
     Implements exp(-i * coeff * (X_i X_j + Y_i Y_j)).
     i => control qubit
@@ -105,14 +104,20 @@ def trotter_step(circ, t, theta, *, N, T, dt, w, m0, m, J):
         for n in range(1, N-1, 2):
             wbar = w_bar(t, T, w, n, m0, m, theta)
             circ = xx_gate(circ, n + 1, n, wbar * 0.5 * dt / 2)
+
+        # for n in range(0, N-1, 2):
+        #     wbar = w_bar(t, T, w, n, m0, m, theta) * 0.5
+        #     circ = xxyy_gate(circ, n + 1, n, wbar * dt / 2)
+        # for n in range(1, N-1, 2):
+        #     wbar = w_bar(t, T, w, n, m0, m, theta) * 0.5
+        #     circ = xxyy_gate(circ, n + 1, n, wbar * dt / 2)
         return circ
 
     def H_ZZ(circ):
         circ.copy()
-        for n in range(1, N-1):
+        for n in range(0, N-1):
             for k in range(n):
-                circ = zz_gate(circ, k, n, J * dt / 2)
-
+                circ = zz_gate(circ, n, k, J * dt / 2)
         return circ
 
     circ.barrier()
@@ -136,7 +141,11 @@ def trotter_step(circ, t, theta, *, N, T, dt, w, m0, m, J):
 
 
 def compute_z_expectations(counts, N, shots):
-    """Return <Z_n> for each qubit n from measurement counts."""
+    """
+    Return <Z_n> for each qubit n from measurement counts.
+    <Z_n> = P(0)_n - P(1)_n
+    <Z_n> = (N_0 - N_1) / (N_0 + N_1)
+    """
     expectations = np.zeros(N)
     for bitstring, count in counts.items():
         bits = bitstring[::-1]
@@ -147,6 +156,9 @@ def compute_z_expectations(counts, N, shots):
 
 
 def chiral_condensate(expectations, a):
+    """
+    <psi_bar psi> = (1 / (2 * N * a)) * sum_n ((-1) ** n) <Z_n>
+    """
     N = len(expectations)
     vals = [(-1) ** n * expectations[n] for n in range(N)]
     return np.sum(vals) / (2 * N * a)
@@ -191,7 +203,7 @@ def run_sim(g, m, theta, *, N, T, dt, m0, a, w, shots, draw: bool):
     return psi_bar_psi_minus_free
 
 
-def run_sims(g, m, *, N, T, dt, m0, a, w, shots, draw: bool):
+def run_sims_theta(g, m, *, N, T, dt, m0, a, w, shots, draw: bool, **kwargs):
     """Run multiple simulations across a theta range."""
     thetas = [i * 0.05 * 2 * np.pi for i in range(0, 11)]
     results = []
@@ -202,20 +214,31 @@ def run_sims(g, m, *, N, T, dt, m0, a, w, shots, draw: bool):
     return np.array(thetas), np.array(results)
 
 
+def run_sims_t(g, m, *, N, T, dt, m0, a, w, shots, draw: bool, **kwargs):
+    """Run multiple simulations across a t range."""
+    ts = [i * dt for i in range(int(T / dt))]
+    results = []
+    for t in tqdm(ts):
+        res = run_sim(g, m, t, N=N, T=T, dt=dt,
+                      m0=m0, a=a, w=w, shots=shots, draw=draw)
+        results.append(res)
+    return np.array(ts), np.array(results)
+
+
 def extrapolate_N_to_infty(all_results, Ns):
     Ns = np.array(Ns, dtype=float)
     invN = 1.0 / Ns
-    thetas = np.arange(len(all_results[0]))
+    independent_var = np.arange(len(all_results[0]))
     extrapolated = []
 
-    for i in range(len(thetas)):
+    for i in range(len(independent_var)):
         y = np.array([res[i] for res in all_results])
         coeffs = np.polyfit(invN, y, 2)
         extrapolated.append(np.polyval(coeffs, 0.0))  # evaluate at 1/N = 0
     return np.array(extrapolated)
 
 
-def plot_results(thetas, results_by_N, Ns, results_inf, **kwargs):
+def plot_results_theta(thetas, results_by_N, Ns, results_inf, **kwargs):
     plt.figure(figsize=(7, 5))
     if results_inf is not None:
         # for N, res in zip(Ns, results_by_N):
@@ -226,35 +249,70 @@ def plot_results(thetas, results_by_N, Ns, results_inf, **kwargs):
         for N, res in zip(Ns, results_by_N):
             plt.plot(thetas / (2 * np.pi), res, "o-", label=f"N={N}")
 
-    plt.title(f"Chiral condensate, g={kwargs['g']}, m={
-              kwargs['m']}, a={kwargs['a']}")
+    plt.title(f"(g,m,N,w) = ({kwargs['g']},{
+              kwargs['m']},{kwargs['N']},{kwargs['w']})")
     plt.xlabel(r"$\theta / 2\pi$")
     plt.ylabel(
         r"$\langle\bar{\psi}\psi\rangle - \langle\bar{\psi}\psi\rangle_{\rm free}$")
     plt.legend()
     plt.tight_layout()
-    if Ns and results_inf is not None:
-        plt.savefig("images/results_extrapolated.png", dpi=200)
+    if kwargs["output"]:
+        plt.savefig(kwargs["output"], dpi=200)
+    plt.show()
+
+
+def plot_results_t(ts, results_by_t, results_inf, **kwargs):
+    plt.figure(figsize=(7, 5))
+    if results_inf is not None:
+        plt.plot(ts, results_inf,
+                 "o-", label="N->inf extrapolated")
     else:
-        plt.savefig("images/results.png", dpi=200)
+        for res in results_by_t:
+            ts = ts[:50]
+            res = res[:50]
+            plt.plot(ts, res, "o-", label=f"T={kwargs['T']}")
+
+    plt.title(f"(g,m,N,w) = ({kwargs['g']},{
+              kwargs['m']},{kwargs['N']},{kwargs['w']})")
+    plt.xlabel(r"$t$")
+    plt.ylabel(
+        r"$\langle\bar{\psi}\psi\rangle$")
+    plt.legend()
+    plt.tight_layout()
+    if kwargs["output"]:
+        plt.savefig(kwargs["output"], dpi=200)
     plt.show()
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter
-            )
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     # parser.add_argument("-N", "--Nqubits", type=int)
-    parser.add_argument("-a", "--a", type=float, default=1.0, help="IDK")
-    parser.add_argument("-T", "--time", type=float, default=15, help="Total time")
-    parser.add_argument("-dt", "--timestep", type=float, default=0.3, help="Time of each trotter step")
+    parser.add_argument("-a", "--a", type=float,
+                        default=1.0, help="Lattice spacing")
+    parser.add_argument("-T", "--time", type=float,
+                        default=15, help="Total time")
+    parser.add_argument("-dt", "--timestep", type=float,
+                        default=0.3, help="Time of each trotter step")
     parser.add_argument("-m0", "--m0", type=float, default=1.0, help="IDK")
-    parser.add_argument("-g", "--coupling_constant", type=float, default=1.0, help="Coupling constant")
+    parser.add_argument("-g", "--coupling_constant",
+                        type=float, default=1.0, help="Coupling constant")
     parser.add_argument("-m", "--mass", type=float, default=0.1, help="Mass")
-    parser.add_argument("-s", "--shots", type=int, default=2048, help="Number of shots")
-    parser.add_argument("-i", "--inf", action="store_true", help="Extrapolate number of Qubits to infinity")
-    parser.add_argument("-N", "--Nqubits", type=int, default=16, help="Number of Qubits")
-    parser.add_argument("-d", "--draw", action="store_true", help="Draw the circuit and exit")
+    parser.add_argument("-s", "--shots", type=int,
+                        default=2048, help="Number of shots")
+    parser.add_argument("-i", "--inf", action="store_true",
+                        help="Extrapolate number of Qubits to infinity")
+    parser.add_argument("-N", "--Nqubits", type=int,
+                        default=16, help="Number of Qubits")
+    parser.add_argument("-w", "--w", type=float, default=None,
+                        help="w (if set overwrites a)")
+    parser.add_argument("-d", "--draw", action="store_true",
+                        help="Draw the circuit and exit")
+    parser.add_argument("plot", choices=[
+                        "4", "5"], help="Plot type, choices are which variable to plot on the x-axis")
+    parser.add_argument("-o", "--output", type=str,
+                        help="Save figure to this path")
     return parser.parse_args()
 
 
@@ -263,40 +321,49 @@ def main():
     if args.m0 is not None and args.m0 < 0:
         raise ValueError("m0 must be non-negative")
 
+    if args.w is not None:
+        args.a = 1.0 / (2 * args.w)
     a = args.a or 1.0
     params = {
-        # "N": args.Nqubits or 16,
+        "N": args.Nqubits or 4,
         "a": a,
-        "w": 1.0 / (2 * a),
+        "w": args.w or 1.0 / (2 * a),
         "T": args.time or 150,
         "dt": args.timestep or 0.3,
         "m0": args.m0 or 1.0,
         "g": args.coupling_constant or 1.0,
         "m": args.mass or 0.0,
         "shots": args.shots or 2048,
-        "draw": args.draw or False
+        "draw": args.draw or False,
+        "output": args.output or None
     }
 
-    if args.Nqubits and args.inf:
-        Ns = list(range(4, args.Nqubits + 1, 4))
-    else:
-        if args.Nqubits:
-            Ns = [args.Nqubits]
-        else:
-            Ns = [4]
-
-    if args.inf:
-        all_results = []
-        for N in Ns:
-            print(f"Running simulations for N={N}")
-            thetas, results = run_sims(N=N, **params)
-            all_results.append(results)
-        results_inf = extrapolate_N_to_infty(all_results, Ns)
-        plot_results(thetas, all_results, Ns, results_inf, **params)
-    else:
-        thetas, results = run_sims(N=Ns[0], **params)
-        results = [results]
-        plot_results(thetas, results, Ns, None, **params)
+    match args.plot:
+        case "4":
+            if args.inf:
+                all_results = []
+                args.Nqubits = list(range(4, args.Nqubits + 1, 4))
+                Ns = args.Nqubits
+                params.clear("N")
+                for N in Ns:
+                    print(f"Running simulations for N={N}")
+                    thetas, results = run_sims_theta(N=N, **params)
+                    all_results.append(results)
+                results_inf = extrapolate_N_to_infty(all_results, Ns)
+                plot_results_theta(thetas, all_results, Ns,
+                                   results_inf, **params)
+            else:
+                Ns = [args.Nqubits]
+                thetas, results = run_sims_theta(**params)
+                results = [results]
+                plot_results_theta(thetas, results, Ns, None, **params)
+        case "5":
+            if args.inf:
+                exit(1)
+            else:
+                ts, results = run_sims_t(**params)
+                results = [results]
+                plot_results_t(ts, results, None, **params)
 
 
 if __name__ == "__main__":
