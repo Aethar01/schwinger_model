@@ -8,6 +8,8 @@ from scipy.special import ellipk
 from tqdm import tqdm
 import argparse
 
+import math
+
 
 def zz_gate(circ, i, j, coeff):
     """
@@ -268,9 +270,11 @@ def plot_results_t(ts, results_by_t, results_inf, **kwargs):
                  "o-", label="N->inf extrapolated")
     else:
         for res in results_by_t:
-            ts = ts[:50]
-            res = res[:50]
-            plt.plot(ts, res, "o-", label=f"T={kwargs['T']}")
+            ts: np.ndarray
+            idx = math.ceil(5 / (kwargs["dt"]))
+            ts = ts[:idx]
+            res = res[:idx]
+            plt.plot(ts, res, "o-", label=f"T={kwargs['T']}, dt={kwargs['dt']}")
 
     plt.title(f"(g,m,N,w) = ({kwargs['g']},{
               kwargs['m']},{kwargs['N']},{kwargs['w']})")
