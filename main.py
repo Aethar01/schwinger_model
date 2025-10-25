@@ -317,6 +317,8 @@ def parse_args():
                         "4", "5"], help="Plot type, choices are which variable to plot on the x-axis")
     parser.add_argument("-o", "--output", type=str,
                         help="Save figure to this path")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Print parameters")
     return parser.parse_args()
 
 
@@ -341,6 +343,11 @@ def main():
         "draw": args.draw or False,
         "output": args.output or None
     }
+
+    if args.verbose:
+        print("Parameters:")
+        for k, v in params.items():
+            print(f"\t{k}: {v}")
 
     match args.plot:
         case "4":
