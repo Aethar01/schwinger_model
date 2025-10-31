@@ -6,7 +6,7 @@ from scipy.special import ellipk
 from tqdm import tqdm
 from qiskit.quantum_info import Statevector
 
-from lib import c_n, trotter_step, compute_z_expectations, chiral_condensate
+from .lib import c_n, trotter_step, compute_z_expectations, chiral_condensate
 
 
 def run_sim(g, m, theta, *, N, T, dt, m0, a, w, shots, draw: bool, t=None):
@@ -90,7 +90,7 @@ def run_sims_theta(g, m, *, N, T, dt, m0, a, w, shots, draw: bool, **kwargs):
 
 def run_sims_t(g, m, *, N, T, dt, m0, a, w, shots, draw: bool, **kwargs):
     """Run multiple simulations across a t range."""
-    ts = [i * dt for i in range(int(5 / dt))]
+    ts = [i * dt for i in range(int(kwargs["max_t"] / dt))]
     # print(ts)
     results = []
     for t in tqdm(ts):

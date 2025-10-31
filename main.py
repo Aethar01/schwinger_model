@@ -4,8 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import argparse
 
-from qclib.sim import run_sims_theta, run_sims_t
-from qclib.lib import extrapolate_N_to_infty
+from qclib.sim import run_sims_theta, run_sims_t, extrapolate_N_to_infty
 
 
 def plot_results_theta(thetas, results_by_N, Ns, results_inf, **kwargs):
@@ -143,7 +142,7 @@ def main():
             if args.inf:
                 exit(1)
             else:
-                ts, results = run_sims_t(**params)
+                ts, results = run_sims_t(**params, max_t=10)
                 results = [results]
                 plot_results_t(ts, results, None, **params, Ts=[args.time])
         case "5":
@@ -159,7 +158,7 @@ def main():
                         print(f"Running simulations for N={N}")
                         params["T"] = T
                         params["N"] = N
-                        ts, results = run_sims_t(**params)
+                        ts, results = run_sims_t(**params, max_t=10)
                         results_by_N.append(results)
                     results_inf = extrapolate_N_to_infty(results_by_N, Ns)
                     results_by_T.append(results_inf)
