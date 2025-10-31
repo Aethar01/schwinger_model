@@ -15,28 +15,28 @@ def run_sim(g, m, theta, *, N, T, dt, m0, a, w, shots, draw: bool, t=None):
 
     qc = QuantumCircuit(N)
 
-    dim = 2 ** N
-
-    state_vector = np.zeros(dim, dtype=complex)
-
-    for n in range(N):
-        state_vector[n] = c_n(0, T, m0, m, theta, n, J, N)
-
-    norm = np.linalg.norm(state_vector)
-
-    if norm < 1e-9:
-        print("Warning: State vector norm is close to zero.")
-        exit(1)
-    else:
-        normalized_state = state_vector / norm
-
-    state = Statevector(normalized_state)
-    # print(state)
-    qc.initialize(state)
+    # dim = 2 ** N
+    #
+    # state_vector = np.zeros(dim, dtype=complex)
+    #
+    # for n in range(N):
+    #     state_vector[n] = c_n(0, T, m0, m, theta, n, J, N)
+    #
+    # norm = np.linalg.norm(state_vector)
+    #
+    # if norm < 1e-9:
+    #     print("Warning: State vector norm is close to zero.")
+    #     exit(1)
+    # else:
+    #     normalized_state = state_vector / norm
+    #
+    # state = Statevector(normalized_state)
+    # # print(state)
+    # qc.initialize(state)
 
     # Initial state |0101...>
-    # for n in range(1, N, 2):
-    #     qc.x(n)
+    for n in range(1, N, 2):
+        qc.x(n)
 
     for n in range(N):
         cn = c_n(t, T, m0, m, theta, n, J, N)

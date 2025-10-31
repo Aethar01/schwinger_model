@@ -88,6 +88,8 @@ def parse_args():
                         help="Print parameters")
     parser.add_argument("-t", "--theta", type=float,
                         default=0.0, help="Initial angle")
+    parser.add_argument("-mt", "--max_t", type=int,
+                        default=5, help="Maximum time to run")
     return parser.parse_args()
 
 
@@ -142,7 +144,7 @@ def main():
             if args.inf:
                 exit(1)
             else:
-                ts, results = run_sims_t(**params, max_t=10)
+                ts, results = run_sims_t(**params, max_t=args.max_t)
                 results = [results]
                 plot_results_t(ts, results, None, **params, Ts=[args.time])
         case "5":
@@ -158,7 +160,7 @@ def main():
                         print(f"Running simulations for N={N}")
                         params["T"] = T
                         params["N"] = N
-                        ts, results = run_sims_t(**params, max_t=10)
+                        ts, results = run_sims_t(**params, max_t=args.max_t)
                         results_by_N.append(results)
                     results_inf = extrapolate_N_to_infty(results_by_N, Ns)
                     results_by_T.append(results_inf)

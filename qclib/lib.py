@@ -141,7 +141,8 @@ def compute_z_expectations(counts, N, shots):
     """
     expectations = np.zeros(N)
     for bitstring, count in counts.items():
-        bits = bitstring[::-1]
+        # bits = bitstring[::-1]
+        bits = bitstring
         for n, b in enumerate(bits):
             expectations[n] += (1 if b == "0" else -1) * count
     expectations /= shots
