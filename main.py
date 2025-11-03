@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import argparse
 
-from qclib.sim import run_sims_theta, run_sims_t, extrapolate_N_to_infty
+from qclib.sim import run_sims_t, extrapolate_N_to_infty
 
 
 def plot_results_theta(thetas, results_by_N, Ns, results_inf, **kwargs):
@@ -123,25 +123,28 @@ def main():
 
     match args.plot:
         case "4":
-            if args.inf:
-                all_results = []
-                args.Nqubits = list(range(4, args.Nqubits + 1, 4))
-                Ns = args.Nqubits
-                for N in Ns:
-                    print(f"Running simulations for N={N}")
-                    params["N"] = N
-                    thetas, results = run_sims_theta(**params)
-                    all_results.append(results)
-                results_inf = extrapolate_N_to_infty(all_results, Ns)
-                plot_results_theta(thetas, all_results, Ns,
-                                   results_inf, **params)
-            else:
-                Ns = [args.Nqubits]
-                thetas, results = run_sims_theta(**params)
-                results = [results]
-                plot_results_theta(thetas, results, Ns, None, **params)
+            print("Not implemented")
+            exit(1)
+        #     if args.inf:
+        #         all_results = []
+        #         args.Nqubits = list(range(4, args.Nqubits + 1, 4))
+        #         Ns = args.Nqubits
+        #         for N in Ns:
+        #             print(f"Running simulations for N={N}")
+        #             params["N"] = N
+        #             thetas, results = run_sims_theta(**params)
+        #             all_results.append(results)
+        #         results_inf = extrapolate_N_to_infty(all_results, Ns)
+        #         plot_results_theta(thetas, all_results, Ns,
+        #                            results_inf, **params)
+        #     else:
+        #         Ns = [args.Nqubits]
+        #         thetas, results = run_sims_theta(**params)
+        #         results = [results]
+        #         plot_results_theta(thetas, results, Ns, None, **params)
         case "5_single":
             if args.inf:
+                print("Not implemented")
                 exit(1)
             else:
                 ts, results = run_sims_t(**params, max_t=args.max_t)
@@ -164,7 +167,7 @@ def main():
                         results_by_N.append(results)
                     results_inf = extrapolate_N_to_infty(results_by_N, Ns)
                     results_by_T.append(results_inf)
-                params["N"] = r"\infinity"
+                params["N"] = r"\inf"
                 plot_results_t(ts, results_by_T, None, **params, Ts=Ts)
             else:
                 Ts = [args.time, args.time + 50, args.time + 100]

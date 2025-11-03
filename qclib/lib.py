@@ -98,12 +98,6 @@ def trotter_step(circ, t, theta, *, N, T, dt, w, m0, m, J):
             wbar = w_bar(t, T, w, n, m0, m, theta)
             circ = xx_gate(circ, n + 1, n, wbar * 0.5 * dt / 2)
 
-        # for n in range(0, N-1, 2):
-        #     wbar = w_bar(t, T, w, n, m0, m, theta) * 0.5
-        #     circ = xxyy_gate(circ, n + 1, n, wbar * dt / 2)
-        # for n in range(1, N-1, 2):
-        #     wbar = w_bar(t, T, w, n, m0, m, theta) * 0.5
-        #     circ = xxyy_gate(circ, n + 1, n, wbar * dt / 2)
         return circ
 
     def H_ZZ(circ):
@@ -141,8 +135,8 @@ def compute_z_expectations(counts, N, shots):
     """
     expectations = np.zeros(N)
     for bitstring, count in counts.items():
-        # bits = bitstring[::-1]
-        bits = bitstring
+        bits = bitstring[::-1]
+        # bits = bitstring
         for n, b in enumerate(bits):
             expectations[n] += (1 if b == "0" else -1) * count
     expectations /= shots
