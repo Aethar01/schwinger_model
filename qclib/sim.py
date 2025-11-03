@@ -32,7 +32,7 @@ def setup_simulation(params, t):
     g = params["g"]
     m = params["m"]
     theta = params["theta"]
-    J = g**2 * a / 2
+    J = params["J"]
     qc = QuantumCircuit(N)
     dim = 2 ** N
     state_vector = np.zeros(dim, dtype=complex)
@@ -46,6 +46,11 @@ def setup_simulation(params, t):
         normalized_state = state_vector / norm
     state = Statevector(normalized_state)
     qc.initialize(state)
+
+    # for n in [0, 1, 2]:
+    #     qc.x(n)
+    # for n in range(0, N, 2):
+    #     qc.x(n)
 
     steps = int(t / dt)
     for step in range(steps):
@@ -76,8 +81,8 @@ def run_sim(qcs, params):
     ]
 
     all_psi_bar_psi = [
-            chiral_condensate(expectations, params["a"])
-            for expectations in all_expectations
+        chiral_condensate(expectations, params["a"])
+        for expectations in all_expectations
     ]
 
     if params["m"] != 0:

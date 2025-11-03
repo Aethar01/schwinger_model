@@ -101,6 +101,7 @@ def main():
     if args.w is not None:
         args.a = 1.0 / (2 * args.w)
     a = args.a or 1.0
+    J = args.coupling_constant**2 * a / 2
     params = {
         "N": args.Nqubits or 4,
         "a": a,
@@ -113,7 +114,8 @@ def main():
         "shots": args.shots or 2048,
         "draw": args.draw or False,
         "output": args.output or None,
-        "theta": args.theta or 0.0
+        "theta": args.theta or 0.0,
+        "J": J
     }
 
     if args.verbose:
@@ -175,7 +177,7 @@ def main():
                 for T in Ts:
                     print(f"Running simulations for T={T}")
                     params["T"] = T
-                    ts, results = run_sims_t(**params)
+                    ts, results = run_sims_t(**params, max_t=args.max_t)
                     results_by_T.append(results)
                 plot_results_t(ts, results_by_T, None, **params, Ts=Ts)
 

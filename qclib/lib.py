@@ -74,14 +74,14 @@ def trotter_step(circ, t, theta, *, N, T, dt, w, m0, m, J):
         return wbar
 
     def H_Z(circ):
-        circ.copy()
+        circ = circ.copy()
         for n in range(N):
             cn = c_n(t, T, m0, m, theta, n, J, N)
             circ.rz(2 * cn * dt, n)
         return circ
 
     def H_plus_minus_half(circ):
-        circ.copy()
+        circ = circ.copy()
         for n in range(0, N-1, 2):
             wbar = w_bar(t, T, w, n, m0, m, theta)
             circ = yy_gate(circ, n + 1, n, wbar * 0.5 * dt / 2)
@@ -101,7 +101,7 @@ def trotter_step(circ, t, theta, *, N, T, dt, w, m0, m, J):
         return circ
 
     def H_ZZ(circ):
-        circ.copy()
+        circ = circ.copy()
         for n in range(0, N-1):
             for k in range(n):
                 circ = zz_gate(circ, n, k, J * dt / 2)
@@ -149,4 +149,4 @@ def chiral_condensate(expectations, a):
     """
     N = len(expectations)
     vals = [(-1) ** n * expectations[n] for n in range(N)]
-    return np.sum(vals) / (2 * N * a)
+    return np.sum(vals) / (N * a)
