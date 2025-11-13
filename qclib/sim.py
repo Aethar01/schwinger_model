@@ -104,7 +104,7 @@ def setup_or_load_simulation(params, t):
 
     sim = AerSimulator()
 
-    print("Transpiling circuits...")
+    # print("Transpiling circuits...")
     transpiled_qc = transpile(qc, sim)
 
     with open(cache_file, "wb") as f:

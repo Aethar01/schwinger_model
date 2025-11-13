@@ -1,7 +1,8 @@
 import numpy as np
+from qiskit.circuit import QuantumCircuit
 
 
-def zz_gate(circ, i, j, coeff):
+def zz_gate(circ: QuantumCircuit, i, j, coeff) -> QuantumCircuit:
     """
     Implements exp(-i * coeff * Z_i Z_j).
     i => control qubit
@@ -14,7 +15,7 @@ def zz_gate(circ, i, j, coeff):
     return circ
 
 
-def xx_gate(circ, i, j, coeff):
+def xx_gate(circ: QuantumCircuit, i, j, coeff) -> QuantumCircuit:
     """
     Implements exp(-i * coeff * X_i X_j).
     i => control qubit
@@ -27,7 +28,7 @@ def xx_gate(circ, i, j, coeff):
     return circ
 
 
-def yy_gate(circ, i, j, coeff):
+def yy_gate(circ: QuantumCircuit, i, j, coeff) -> QuantumCircuit:
     """
     Implements exp(-i * coeff * Y_i Y_j).
     i => control qubit
@@ -61,7 +62,7 @@ def c_n(t, T, m0, m, theta, n, J, N):
     return cn
 
 
-def trotter_step(circ, t, theta, *, N, T, dt, w, m0, m, J):
+def trotter_step(circ: QuantumCircuit, t, theta, *, N, T, dt, w, m0, m, J) -> QuantumCircuit:
     """
     Performs one Trotter step:
     U(t) = exp(-i H_+-(t) dt / 2) exp(-i H_ZZ dt) exp(-i H_Z dt) exp(-i H_+-(t) dt / 2)
