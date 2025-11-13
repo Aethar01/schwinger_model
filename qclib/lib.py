@@ -43,16 +43,16 @@ def yy_gate(circ, i, j, coeff):
     return circ
 
 
-def xxyy_gate(circ, i, j, coeff):
-    """
-    Implements exp(-i * coeff * (X_i X_j + Y_i Y_j)).
-    i => control qubit
-    j => target qubit
-    """
-    circ = circ.copy()
-    circ = xx_gate(circ, i, j, coeff)
-    circ = yy_gate(circ, i, j, coeff)
-    return circ
+# def xxyy_gate(circ, i, j, coeff):
+#     """
+#     Implements exp(-i * coeff * (X_i X_j + Y_i Y_j)).
+#     i => control qubit
+#     j => target qubit
+#     """
+#     circ = circ.copy()
+#     circ = xx_gate(circ, i, j, coeff)
+#     circ = yy_gate(circ, i, j, coeff)
+#     return circ
 
 
 def c_n(t, T, m0, m, theta, n, J, N):

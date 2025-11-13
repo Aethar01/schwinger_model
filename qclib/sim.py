@@ -5,8 +5,35 @@ from matplotlib import pyplot as plt
 from scipy.special import ellipk
 from tqdm import tqdm
 from qiskit.quantum_info import Statevector
+import pickle
+import hashlib
+import json
+import inspect
+from pathlib import Path
 
 from .lib import c_n, trotter_step, compute_z_expectations, chiral_condensate
+
+_cache_dir = Path.home() / ".cache" / "schwinger_model" / "circuit_cache"
+_cache_dir.mkdir(parents=True, exist_ok=True)
+
+
+def _hash_source(*funcs):
+    """Hash the source code of given functions for cache invalidation."""
+    source_str = "".join(inspect.getsource(f) for f in funcs)
+    return hashlib.sha256(source_str.encode()).hexdigest()
+
+
+def _circuit_cache_key(params, t):
+    """Create a unique hash key for the transpiled circuit based on parameters, time, and function sources."""
+    relevant_params = {k: params[k] for k in [
+        "N", "T", "dt", "m0", "a", "w", "m", "theta", "J", "shots"
+    ]}
+    relevant_params["t"] = t
+
+    param_str = json.dumps(relevant_params, sort_keys=True)
+    code_hash = _hash_source(c_n, trotter_step)
+    combined_str = param_str + code_hash
+    return hashlib.sha256(combined_str.encode()).hexdigest()
 
 
 def extrapolate_N_to_infty(all_results, Ns):
@@ -22,7 +49,24 @@ def extrapolate_N_to_infty(all_results, Ns):
     return np.array(extrapolated)
 
 
-def setup_simulation(params, t):
+def setup_or_load_simulation(params, t):
+    # LOAD
+    relevant_params = {k: params[k] for k in [
+        "N", "T", "dt", "m0", "a", "w", "m", "theta", "J", "shots"
+    ]}
+    relevant_params["t"] = t
+    param_str = json.dumps(relevant_params, sort_keys=True)
+    code_hash = _hash_source(c_n, trotter_step)
+    key = hashlib.sha256((param_str + code_hash).encode()).hexdigest()
+    cache_file = _cache_dir / f"{key}.pkl"
+
+    # Load cached transpiled circuit if available
+    if cache_file.exists():
+        with open(cache_file, "rb") as f:
+            transpiled_qc = pickle.load(f)
+        return transpiled_qc
+
+    # OR BUILD
     N = params["N"]
     T = params["T"]
     dt = params["dt"]
@@ -57,22 +101,25 @@ def setup_simulation(params, t):
         qc = trotter_step(qc, step * dt, theta, N=N, T=T,
                           dt=dt, w=w, m0=m0, m=m, J=J)
     qc.measure_all()
-    return qc
+
+    sim = AerSimulator()
+
+    print("Transpiling circuits...")
+    transpiled_qc = transpile(qc, sim)
+
+    with open(cache_file, "wb") as f:
+        pickle.dump(transpiled_qc, f)
+
+    return transpiled_qc
 
 
 def run_sim(qcs, params):
     sim = AerSimulator()
 
-    print("Transpiling circuits...")
-    compiled = [
-        transpile(qc, sim)
-        for qc in tqdm(qcs)
-    ]
-
     print("Running simulations...")
     all_counts = [
         sim.run(qc, shots=params["shots"]).result().get_counts()
-        for qc in tqdm(compiled)
+        for qc in tqdm(qcs)
     ]
 
     all_expectations = [
@@ -97,12 +144,61 @@ def run_sim(qcs, params):
     return psi_bar_psi_minus_free
 
 
+# def run_sim(qcs, params):
+#     sim = AerSimulator()
+#
+#     print("Transpiling circuits...")
+#
+#     compiled = []
+#     for qc in tqdm(qcs):
+#         # compute cache key per circuit
+#         key = _circuit_cache_key(
+#             params, t=0)
+#         cache_file = _cache_dir / f"{key}.pkl"
+#
+#         if cache_file.exists():
+#             with open(cache_file, "rb") as f:
+#                 transpiled_qc = pickle.load(f)
+#         else:
+#             transpiled_qc = transpile(qc, sim)
+#             with open(cache_file, "wb") as f:
+#                 pickle.dump(transpiled_qc, f)
+#         compiled.append(transpiled_qc)
+#
+#     print("Running simulations...")
+#     all_counts = [
+#         sim.run(qc, shots=params["shots"]).result().get_counts()
+#         for qc in tqdm(compiled)
+#     ]
+#
+#     all_expectations = [
+#         compute_z_expectations(counts, params["N"], params["shots"])
+#         for counts in all_counts
+#     ]
+#
+#     all_psi_bar_psi = [
+#         chiral_condensate(expectations, params["a"])
+#         for expectations in all_expectations
+#     ]
+#
+#     if params["m"] != 0:
+#         psi_free = -(params["m"] * np.cos(params["theta"]) / np.pi) * \
+#             1 / np.sqrt(1 + (params["m"]*params["a"]*np.cos(params["theta"]))**2) * \
+#             ellipk((1 - (params["m"]*params["a"]*np.sin(params["theta"]))**2) /
+#                    (1 + (params["m"]*params["a"]*np.cos(params["theta"]))**2))
+#     else:
+#         psi_free = 0
+#
+#     psi_bar_psi_minus_free = np.array(all_psi_bar_psi) - psi_free
+#     return psi_bar_psi_minus_free
+
+
 def run_sims_t(**params):
     dt = params["dt"]
     max_t = params["max_t"]
     ts = [i * dt for i in range(int(max_t / dt))]
     print("Building circuits...")
-    qcs = [setup_simulation(params, t) for t in tqdm(ts)]
+    qcs = [setup_or_load_simulation(params, t) for t in tqdm(ts)]
 
     if params["draw"]:
         print(qcs[1].draw(output="mpl"))
