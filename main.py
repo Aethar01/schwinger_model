@@ -3,26 +3,37 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import argparse
+from pathlib import Path
 
-from qclib.sim import run_sims_t, extrapolate_N_to_infty
+from qclib.sim import run_sims_t, extrapolate_N_to_infty, run_sims_theta, run_sims_g
 
 
-def plot_results_theta(thetas, results_by_N, Ns, results_inf, **kwargs):
+def plot_results_theta(thetas, results, **kwargs):
     plt.figure(figsize=(7, 5))
-    if results_inf is not None:
-        # for N, res in zip(Ns, results_by_N):
-        #     plt.plot(thetas / (2 * np.pi), res, "o--", label=f"N={N}")
-        plt.plot(thetas / (2 * np.pi), results_inf,
-                 "o-", label="N->inf extrapolated")
-    else:
-        for N, res in zip(Ns, results_by_N):
-            plt.plot(thetas / (2 * np.pi), res, "o-", label=f"N={N}")
+    plt.plot(thetas / (2 * np.pi), results, "o-")
 
     plt.title(f"(g,m,N,w) = ({kwargs['g']},{
               kwargs['m']},{kwargs['N']},{kwargs['w']})")
     plt.xlabel(r"$\theta / 2\pi$")
     plt.ylabel(
         r"$\langle\bar{\psi}\psi\rangle - \langle\bar{\psi}\psi\rangle_{\rm free}$")
+    plt.legend()
+    plt.tight_layout()
+    if kwargs["output"]:
+        plt.savefig(kwargs["output"], dpi=200)
+    plt.show()
+
+
+def plot_results_g(gs, results, **kwargs):
+    plt.figure(figsize=(7, 5))
+    print(results)
+    plt.plot(gs, results, "o-")
+
+    plt.title(f"(g,m,N,w) = ({kwargs['g']},{
+              kwargs['m']},{kwargs['N']},{kwargs['w']})")
+    plt.xlabel(r"$g$")
+    plt.ylabel(
+        r"$\langle\bar{\psi}\psi\rangle$")
     plt.legend()
     plt.tight_layout()
     if kwargs["output"]:
@@ -81,7 +92,7 @@ def parse_args():
     parser.add_argument("-d", "--draw", action="store_true",
                         help="Draw the circuit and exit")
     parser.add_argument("plot", choices=[
-                        "4", "5", "5_single"], help="Plot type, choices are which variable to plot on the x-axis")
+                        "2", "4", "5", "5_single"], help="Plot type, choices are which variable to plot on the x-axis")
     parser.add_argument("-o", "--output", type=str,
                         help="Save figure to this path")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -96,6 +107,8 @@ def parse_args():
 
 
 def main():
+    _cache_dir = Path.cwd() / "__pycache__" / "circuit_cache"
+    _cache_dir.mkdir(parents=True, exist_ok=True)
     args = parse_args()
     if args.m0 is not None and args.m0 < 0:
         raise ValueError("m0 must be non-negative")
@@ -118,8 +131,8 @@ def main():
         "output": args.output or None,
         "theta": args.theta or 0.0,
         "J": J,
-        "clear_cache": args.clear_cache or False,
-        "verbose": args.verbose or False
+        "verbose": args.verbose or False,
+        "cache_dir": _cache_dir
     }
 
     if params["verbose"]:
@@ -127,27 +140,28 @@ def main():
         for k, v in params.items():
             print(f"\t{k}: {v}")
 
+    if args.clear_cache:
+        if params["verbose"]:
+            print("Clearing cache...")
+        if _cache_dir.exists():
+            for file in _cache_dir.iterdir():
+                file.unlink()
+
     match args.plot:
+        case "2":
+            if args.inf:
+                print("Not implemented")
+                exit(1)
+            else:
+                gs, results = run_sims_g(**params)
+                plot_results_g(gs, results, **params)
         case "4":
-            print("Not implemented")
-            exit(1)
-        #     if args.inf:
-        #         all_results = []
-        #         args.Nqubits = list(range(4, args.Nqubits + 1, 4))
-        #         Ns = args.Nqubits
-        #         for N in Ns:
-        #             print(f"Running simulations for N={N}")
-        #             params["N"] = N
-        #             thetas, results = run_sims_theta(**params)
-        #             all_results.append(results)
-        #         results_inf = extrapolate_N_to_infty(all_results, Ns)
-        #         plot_results_theta(thetas, all_results, Ns,
-        #                            results_inf, **params)
-        #     else:
-        #         Ns = [args.Nqubits]
-        #         thetas, results = run_sims_theta(**params)
-        #         results = [results]
-        #         plot_results_theta(thetas, results, Ns, None, **params)
+            if args.inf:
+                print("Not implemented")
+                exit(1)
+            else:
+                thetas, results = run_sims_theta(**params)
+                plot_results_theta(thetas, results, **params)
         case "5_single":
             if args.inf:
                 print("Not implemented")

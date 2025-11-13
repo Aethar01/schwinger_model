@@ -13,9 +13,6 @@ from pathlib import Path
 
 from .lib import c_n, trotter_step, compute_z_expectations, chiral_condensate
 
-_cache_dir = Path.cwd() / "__pycache__" / "circuit_cache"
-_cache_dir.mkdir(parents=True, exist_ok=True)
-
 
 def _hash_source(*funcs):
     """Hash the source code of given functions for cache invalidation."""
@@ -51,6 +48,7 @@ def extrapolate_N_to_infty(all_results, Ns):
 
 def setup_or_load_simulation(params, t):
     # LOAD
+    _cache_dir = params["cache_dir"]
     relevant_params = {k: params[k] for k in [
         "N", "T", "dt", "m0", "a", "w", "m", "theta", "J", "shots"
     ]}
@@ -194,13 +192,6 @@ def run_sim(qcs, params):
 
 
 def run_sims_t(**params):
-    if params["clear_cache"]:
-        if params["verbose"]:
-            print("Clearing cache...")
-        if _cache_dir.exists():
-            for file in _cache_dir.iterdir():
-                file.unlink()
-
     dt = params["dt"]
     max_t = params["max_t"]
     ts = [i * dt for i in range(int(max_t / dt))]
@@ -214,3 +205,37 @@ def run_sims_t(**params):
 
     res = run_sim(qcs, params)
     return np.array(ts), np.array(res)
+
+
+def run_sims_theta(**params):
+    thetas = [i * 2 * np.pi for i in np.arange(0, 0.51, 0.05)]
+    print("Building circuits...")
+    qcs = []
+    for theta in tqdm(thetas):
+        params["theta"] = theta
+        qcs.append(setup_or_load_simulation(params, params["T"]))
+
+    if params["draw"]:
+        print(qcs[1].draw(output="mpl"))
+        plt.show()
+        exit()
+
+    res = run_sim(qcs, params)
+    return np.array(thetas), np.array(res)
+
+
+def run_sims_g(**params):
+    gs = [i for i in np.arange(0, 2.1, 0.25)]
+    print("Building circuits...")
+    qcs = []
+    for g in tqdm(gs):
+        params["g"] = g
+        qcs.append(setup_or_load_simulation(params, params["T"]))
+
+    if params["draw"]:
+        print(qcs[1].draw(output="mpl"))
+        plt.show()
+        exit()
+
+    res = run_sim(qcs, params)
+    return np.array(gs), np.array(res)
