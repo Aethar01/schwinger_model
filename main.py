@@ -118,10 +118,11 @@ def main():
         "output": args.output or None,
         "theta": args.theta or 0.0,
         "J": J,
-        "clear_cache": args.clear_cache or False
+        "clear_cache": args.clear_cache or False,
+        "verbose": args.verbose or False
     }
 
-    if args.verbose:
+    if params["verbose"]:
         print("Parameters:")
         for k, v in params.items():
             print(f"\t{k}: {v}")

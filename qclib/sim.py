@@ -194,6 +194,13 @@ def run_sim(qcs, params):
 
 
 def run_sims_t(**params):
+    if params["clear_cache"]:
+        if params["verbose"]:
+            print("Clearing cache...")
+        if _cache_dir.exists():
+            for file in _cache_dir.iterdir():
+                file.unlink()
+
     dt = params["dt"]
     max_t = params["max_t"]
     ts = [i * dt for i in range(int(max_t / dt))]
