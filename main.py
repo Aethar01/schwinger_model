@@ -90,6 +90,8 @@ def parse_args():
                         default=0.0, help="Initial angle")
     parser.add_argument("-mt", "--max_t", type=int,
                         default=5, help="Maximum time to run")
+    parser.add_argument("-cc", "--clear_cache", action="store_true",
+                        help="Clear cache")
     return parser.parse_args()
 
 
@@ -115,7 +117,8 @@ def main():
         "draw": args.draw or False,
         "output": args.output or None,
         "theta": args.theta or 0.0,
-        "J": J
+        "J": J,
+        "clear_cache": args.clear_cache or False
     }
 
     if args.verbose:
