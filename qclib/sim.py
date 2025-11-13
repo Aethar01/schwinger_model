@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .lib import c_n, trotter_step, compute_z_expectations, chiral_condensate
 
-_cache_dir = Path.home() / ".cache" / "schwinger_model" / "circuit_cache"
+_cache_dir = Path.cwd() / "__pycache__" / "circuit_cache"
 _cache_dir.mkdir(parents=True, exist_ok=True)
 
 
